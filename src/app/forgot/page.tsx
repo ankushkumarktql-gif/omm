@@ -34,7 +34,7 @@ export default function ForgotPasswordPage() {
             <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center">
               <FileText size={16} className="text-white" />
             </div>
-            <span>Resu<span className="text-indigo-400">AI</span></span>
+            <span>ResumeOMM <span className="text-indigo-400">AI</span></span>
           </Link>
           <h2 className="text-xl font-bold text-white">Reset Password</h2>
           <p className="text-xs text-slate-400">We will send reset instructions to your inbox.</p>

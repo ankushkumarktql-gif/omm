@@ -61,7 +61,7 @@ export default function SignUpPage() {
             <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center">
               <FileText size={16} className="text-white" />
             </div>
-            <span>Resu<span className="text-indigo-400">AI</span></span>
+            <span>ResumeOMM <span className="text-indigo-400">AI</span></span>
           </Link>
           <h2 className="text-xl font-bold text-white">Create your account</h2>
           <p className="text-xs text-slate-400">Get started by setting up your profile credentials.</p>

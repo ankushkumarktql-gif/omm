@@ -55,7 +55,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-lg shadow-indigo-600/30">
               <FileText size={18} className="text-white" />
             </div>
-            <span>Resu<span className="text-indigo-400">AI</span></span>
+            <span>ResumeOMM <span className="text-indigo-400">AI</span></span>
           </Link>
 
           <div className="hidden md:flex items-center gap-8 text-xs font-semibold text-slate-400">
@@ -104,7 +104,7 @@ export default function LandingPage() {
             </span>
           </h1>
           <p className="text-slate-400 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-            Unleash professional dynamic A4 layouts that pass every automated recruiters parsing test. Suggest skills, grade score analytics, and crop profile photos client-side instantly.
+            Build Smarter. Get Hired Faster. Unleash professional dynamic A4 layouts that pass every automated recruiter parsing test. Suggest skills, grade score analytics, and crop profile photos client-side instantly.
           </p>
 
           <div className="flex justify-center items-center gap-4 pt-4">
@@ -241,7 +241,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center space-y-3 max-w-2xl mx-auto mb-16">
             <h2 className="text-3xl font-black text-white font-sans">Endorsed by Professionals</h2>
-            <p className="text-slate-400 text-sm">Job seekers who leveraged ResuAI templates to secure competitive roles.</p>
+            <p className="text-slate-400 text-sm">Job seekers who leveraged ResumeOMM AI templates to secure competitive roles.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -410,7 +410,7 @@ export default function LandingPage() {
               <div className="w-6 h-6 rounded-md bg-indigo-600 flex items-center justify-center">
                 <FileText size={14} className="text-white" />
               </div>
-              <span>Resu<span className="text-indigo-400">AI</span></span>
+              <span>ResumeOMM <span className="text-indigo-400">AI</span></span>
             </Link>
             <div className="text-[10px] text-slate-600 mt-1">
               Designed & Developed by <span className="text-indigo-400 font-semibold hover:text-indigo-300 transition-colors">Ankush Raja</span> (<span className="text-indigo-500/80 font-medium">Ankush kumar</span>)
@@ -418,7 +418,7 @@ export default function LandingPage() {
           </div>
           
           <div className="text-xs text-slate-500">
-            © {new Date().getFullYear()} ResuAI SaaS Inc. All rights reserved.
+            © {new Date().getFullYear()} ResumeOMM AI. All rights reserved.
           </div>
         </div>
       </footer>

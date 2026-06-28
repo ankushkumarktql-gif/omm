@@ -57,7 +57,7 @@ export default function LoginPage() {
             <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center">
               <FileText size={16} className="text-white" />
             </div>
-            <span>Resu<span className="text-indigo-400">AI</span></span>
+            <span>ResumeOMM <span className="text-indigo-400">AI</span></span>
           </Link>
           <h2 className="text-xl font-bold text-white">Welcome back</h2>
           <p className="text-xs text-slate-400">Sign in to edit your resumes and sync online.</p>
@@ -137,7 +137,7 @@ export default function LoginPage() {
 
         {/* Redirect */}
         <p className="mt-8 text-center text-xs text-slate-500">
-          New to ResuAI?{' '}
+          New to ResumeOMM AI?{' '}
           <Link href="/signup" className="text-indigo-400 font-semibold hover:underline">Create an account</Link>
         </p>
       </div>

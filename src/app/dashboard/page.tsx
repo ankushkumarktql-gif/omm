@@ -130,7 +130,7 @@ export default function DashboardPage() {
             <div className="w-7 h-7 rounded-md bg-indigo-600 flex items-center justify-center">
               <FileText size={16} className="text-white" />
             </div>
-            <span>Resu<span className="text-indigo-400">AI</span></span>
+            <span>ResumeOMM <span className="text-indigo-400">AI</span></span>
           </Link>
 
           <nav className="space-y-1">
@@ -174,7 +174,7 @@ export default function DashboardPage() {
             <div className="w-6 h-6 rounded bg-indigo-600 flex items-center justify-center">
               <FileText size={14} />
             </div>
-            <span>Resu<span className="text-indigo-400">AI</span></span>
+            <span>ResumeOMM <span className="text-indigo-400">AI</span></span>
           </Link>
           <div className="flex items-center gap-2">
             <button 
@@ -365,7 +365,7 @@ export default function DashboardPage() {
 
         {/* Footer Credit */}
         <footer className="py-6 mt-12 border-t border-slate-900/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 max-w-7xl mx-auto px-6 w-full flex-shrink-0">
-          <div>© {new Date().getFullYear()} ResuAI. All rights reserved.</div>
+          <div>© {new Date().getFullYear()} ResumeOMM AI. All rights reserved.</div>
           <div className="flex items-center gap-1.5">
             <span>Designed & Developed by</span>
             <span className="text-indigo-400 font-semibold hover:text-indigo-300 transition-colors cursor-default">

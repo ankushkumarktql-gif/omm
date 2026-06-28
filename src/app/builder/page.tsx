@@ -94,7 +94,7 @@ export default function BuilderPage() {
           <div className="w-5 h-5 rounded bg-indigo-600 flex items-center justify-center">
             <FileText size={12} className="text-white" />
           </div>
-          <span className="hidden sm:inline">Resu<span className="text-indigo-400">AI</span></span>
+          <span className="hidden sm:inline">ResumeOMM <span className="text-indigo-400">AI</span></span>
         </Link>
       </header>
 
