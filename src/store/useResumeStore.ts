@@ -1,6 +1,14 @@
 import { create } from 'zustand';
 import { ResumeData } from '@/types/resume';
 import { getDefaultResume } from '@/utils/defaultResume';
+import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  getDocs, 
+  deleteDoc 
+} from 'firebase/firestore';
 
 interface ResumeStore {
   resumes: ResumeData[];
@@ -13,7 +21,7 @@ interface ResumeStore {
   historyIndex: number;
 
   // Actions
-  loadResumes: () => void;
+  loadResumes: () => Promise<void>;
   setActiveResumeId: (id: string | null) => void;
   addResume: (title?: string, templateId?: string) => string;
   duplicateResume: (id: string) => void;
@@ -32,6 +40,44 @@ const LOCAL_STORAGE_KEY = 'ai_resume_builder_resumes';
 const ACTIVE_ID_KEY = 'ai_resume_builder_active_id';
 const HISTORY_LIMIT = 30;
 
+let saveTimeout: NodeJS.Timeout | null = null;
+
+// Firestore API Helpers
+const saveResumeToFirestore = async (userId: string, resume: ResumeData) => {
+  if (!isFirebaseConfigured || !db) return;
+  const resumeRef = doc(db, 'users', userId, 'resumes', resume.id);
+  await setDoc(resumeRef, resume);
+};
+
+const deleteResumeFromFirestore = async (userId: string, resumeId: string) => {
+  if (!isFirebaseConfigured || !db) return;
+  const resumeRef = doc(db, 'users', userId, 'resumes', resumeId);
+  await deleteDoc(resumeRef);
+};
+
+const fetchResumesFromFirestore = async (userId: string): Promise<ResumeData[]> => {
+  if (!isFirebaseConfigured || !db) return [];
+  const resumesCol = collection(db, 'users', userId, 'resumes');
+  const snapshot = await getDocs(resumesCol);
+  const resumesList: ResumeData[] = [];
+  snapshot.forEach((doc) => {
+    resumesList.push(doc.data() as ResumeData);
+  });
+  return resumesList;
+};
+
+const debounceSaveToFirestore = (userId: string, resume: ResumeData) => {
+  if (!isFirebaseConfigured || !db) return;
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(async () => {
+    try {
+      await saveResumeToFirestore(userId, resume);
+    } catch (e) {
+      console.error("Debounced save to Firestore failed:", e);
+    }
+  }, 2000); // 2 seconds delay
+};
+
 export const useResumeStore = create<ResumeStore>((set, get) => ({
   resumes: [],
   activeResumeId: null,
@@ -40,28 +86,55 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
   history: [],
   historyIndex: -1,
 
-  loadResumes: () => {
+  loadResumes: async () => {
+    set({ loading: true, error: null });
     try {
-      if (typeof window === 'undefined') return;
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      const activeId = localStorage.getItem(ACTIVE_ID_KEY);
-      
+      const user = auth.currentUser;
       let loadedResumes: ResumeData[] = [];
-      if (stored) {
-        loadedResumes = JSON.parse(stored);
+      let loadedFromFirestore = false;
+
+      if (user && isFirebaseConfigured) {
+        try {
+          loadedResumes = await fetchResumesFromFirestore(user.uid);
+          loadedFromFirestore = true;
+        } catch (err) {
+          console.warn("Firestore collection is unreachable, using offline fallback:", err);
+        }
       }
-      
+
+      // If Firestore failed or user is offline/not logged in, retrieve from offline localStorage cache
+      if (!loadedFromFirestore && typeof window !== 'undefined') {
+        const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (stored) {
+          loadedResumes = JSON.parse(stored);
+        }
+      }
+
+      // Initial draft creation if no resumes exist
       if (loadedResumes.length === 0) {
-        // Create initial default resume if none exists
         const initial = getDefaultResume('default-id-' + Math.random().toString(36).substr(2, 9));
         loadedResumes = [initial];
+        if (user && isFirebaseConfigured) {
+          saveResumeToFirestore(user.uid, initial).catch(console.error);
+        }
       }
-      
-      let currentActiveId = activeId;
+
+      // Save sync copies back to localStorage cache
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(loadedResumes));
+      }
+
+      let currentActiveId: string | null = null;
+      if (typeof window !== 'undefined') {
+        currentActiveId = localStorage.getItem(ACTIVE_ID_KEY);
+      }
       if (!currentActiveId || !loadedResumes.some(r => r.id === currentActiveId)) {
         currentActiveId = loadedResumes[0].id;
       }
-      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(ACTIVE_ID_KEY, currentActiveId);
+      }
+
       const activeResume = loadedResumes.find(r => r.id === currentActiveId);
       const historyStack = activeResume ? [JSON.parse(JSON.stringify(activeResume))] : [];
 
@@ -73,8 +146,8 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
         historyIndex: 0
       });
     } catch (e) {
-      console.error('Failed to load resumes from localStorage', e);
-      set({ loading: false, error: 'Failed to load data.' });
+      console.error('Failed to load resumes:', e);
+      set({ loading: false, error: 'Failed to retrieve resume drafts.' });
     }
   },
 
@@ -107,6 +180,12 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
       localStorage.setItem(ACTIVE_ID_KEY, id);
     }
 
+    // Sync to Firestore
+    const user = auth.currentUser;
+    if (user && isFirebaseConfigured) {
+      saveResumeToFirestore(user.uid, newResume).catch(console.error);
+    }
+
     set({
       resumes: updatedResumes,
       activeResumeId: id,
@@ -134,6 +213,12 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedResumes));
     }
 
+    // Sync to Firestore
+    const user = auth.currentUser;
+    if (user && isFirebaseConfigured) {
+      saveResumeToFirestore(user.uid, duplicated).catch(console.error);
+    }
+
     set({ resumes: updatedResumes });
   },
 
@@ -147,6 +232,13 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedResumes));
+    }
+
+    // Sync to Firestore
+    const user = auth.currentUser;
+    const updated = updatedResumes.find(r => r.id === id);
+    if (updated && user && isFirebaseConfigured) {
+      saveResumeToFirestore(user.uid, updated).catch(console.error);
     }
 
     set({ resumes: updatedResumes });
@@ -167,6 +259,12 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
       } else {
         localStorage.removeItem(ACTIVE_ID_KEY);
       }
+    }
+
+    // Sync to Firestore
+    const user = auth.currentUser;
+    if (user && isFirebaseConfigured) {
+      deleteResumeFromFirestore(user.uid, id).catch(console.error);
     }
 
     const activeResume = updatedResumes.find(r => r.id === nextActiveId);
@@ -200,11 +298,16 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedResumes));
     }
 
+    // Sync to Firestore (Debounced)
+    const user = auth.currentUser;
+    if (user && isFirebaseConfigured) {
+      debounceSaveToFirestore(user.uid, currentActiveResume);
+    }
+
     // Handle history push
     const currentHistory = get().history.slice(0, get().historyIndex + 1);
     const updatedHistory = [...currentHistory, JSON.parse(JSON.stringify(currentActiveResume))];
     
-    // Cap history length
     if (updatedHistory.length > HISTORY_LIMIT) {
       updatedHistory.shift();
     }
@@ -227,8 +330,8 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
       if (r.id === activeResumeId) {
         return {
           ...prevResumeState,
-          id: r.id, // Preserve ID
-          title: r.title, // Preserve title
+          id: r.id,
+          title: r.title,
           updatedAt: new Date().toISOString()
         };
       }
@@ -237,6 +340,13 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedResumes));
+    }
+
+    // Sync to Firestore (Debounced)
+    const user = auth.currentUser;
+    const activeResume = updatedResumes.find(r => r.id === activeResumeId);
+    if (activeResume && user && isFirebaseConfigured) {
+      debounceSaveToFirestore(user.uid, activeResume);
     }
 
     set({
@@ -268,6 +378,13 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedResumes));
     }
 
+    // Sync to Firestore (Debounced)
+    const user = auth.currentUser;
+    const activeResume = updatedResumes.find(r => r.id === activeResumeId);
+    if (activeResume && user && isFirebaseConfigured) {
+      debounceSaveToFirestore(user.uid, activeResume);
+    }
+
     set({
       resumes: updatedResumes,
       historyIndex: nextIndex
@@ -277,3 +394,10 @@ export const useResumeStore = create<ResumeStore>((set, get) => ({
   canUndo: () => get().historyIndex > 0,
   canRedo: () => get().historyIndex < get().history.length - 1,
 }));
+
+// Subscribe to auth state updates to reload resumes automatically
+if (typeof window !== 'undefined') {
+  auth.onAuthStateChanged(() => {
+    useResumeStore.getState().loadResumes();
+  });
+}

@@ -199,6 +199,52 @@ const parseColorFunction = (colorFnStr: string): string => {
   return 'rgb(0, 0, 0)';
 };
 
+const adjustPageBreaks = (clone: HTMLElement) => {
+  const cloneWidth = clone.clientWidth || 794;
+  const pxPageHeight = Math.round((cloneWidth * 297) / 210);
+
+  let rawItems = Array.from(clone.querySelectorAll('[class*="space-y-"] > div, h2, h3, .skills-grid, .certifications-list')) as HTMLElement[];
+  
+  const items = rawItems.filter(item => {
+    if (item.tagName === 'H2' || item.tagName === 'H3') return true;
+    const hasNestedList = item.querySelector('[class*="space-y-"]') !== null;
+    return !hasNestedList;
+  });
+
+  items.sort((a, b) => {
+    const rectA = a.getBoundingClientRect();
+    const rectB = b.getBoundingClientRect();
+    return rectA.top - rectB.top;
+  });
+
+  items.forEach((item) => {
+    const containerRect = clone.getBoundingClientRect();
+    const itemRect = item.getBoundingClientRect();
+    
+    const itemTop = itemRect.top - containerRect.top;
+    const itemBottom = itemRect.bottom - containerRect.top;
+    const itemHeight = itemRect.height;
+
+    const pageIndexTop = Math.floor(itemTop / pxPageHeight);
+    const pageIndexBottom = Math.floor(itemBottom / pxPageHeight);
+
+    if (pageIndexTop !== pageIndexBottom && itemHeight < pxPageHeight && itemHeight > 0) {
+      const pageEnd = (pageIndexTop + 1) * pxPageHeight;
+      const spacerHeight = pageEnd - itemTop;
+
+      if (spacerHeight > 0 && spacerHeight < pxPageHeight) {
+        const spacer = document.createElement('div');
+        spacer.style.height = `${spacerHeight}px`;
+        spacer.style.width = '100%';
+        spacer.style.clear = 'both';
+        spacer.className = 'print-page-break-spacer';
+        
+        item.parentNode?.insertBefore(spacer, item);
+      }
+    }
+  });
+};
+
 export const ResumePreviewPane: React.FC = () => {
   const activeResumeId = useResumeStore(state => state.activeResumeId);
   const resumes = useResumeStore(state => state.resumes);
@@ -299,6 +345,13 @@ export const ResumePreviewPane: React.FC = () => {
       // 3. Traverse and sanitize all modern colors
       sanitizeClonedDOM(element, clone);
 
+      // 3.5 Adjust page breaks dynamically to prevent cutting text blocks/sections in half
+      try {
+        adjustPageBreaks(clone);
+      } catch (err) {
+        console.warn("Dynamic page break adjustments warning:", err);
+      }
+
       // Wait for fonts to load for pixel perfect layout render
       if (typeof window !== 'undefined' && document.fonts) {
         await document.fonts.ready;
@@ -340,10 +393,10 @@ export const ResumePreviewPane: React.FC = () => {
         heightLeft -= pageHeight;
       }
 
-      const userName = activeResume.personalInfo.name 
-        ? activeResume.personalInfo.name.replace(/\s+/g, '_') 
-        : 'User';
-      pdf.save(`Resume-${userName}.pdf`);
+      const safeTitle = activeResume.title 
+        ? activeResume.title.trim().replace(/\s+/g, '_') 
+        : 'Resume';
+      pdf.save(`${safeTitle}.pdf`);
       triggerToast("Resume downloaded successfully!", "success");
     } catch (err) {
       console.error('PDF compilation failed', err);
