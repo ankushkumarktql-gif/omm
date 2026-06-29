@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description:
     "Build Smarter. Get Hired Faster. Create premium, professional, ATS-friendly resumes in minutes with ResumeOMM AI.",
   verification: {
-    google: "8J4lr5_JNOlCJ0Ztc-YVuN-5YXeedaUv1EHdgL2tFac",
+    google: "t_JnTJNdqIBZWhlhkbzIq9U7_V2oy88yfFqNh2u4fi0",
   },
 };
 
